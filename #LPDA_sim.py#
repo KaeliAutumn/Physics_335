@@ -1,0 +1,106 @@
+#!/bin/python
+
+from random import *
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import fftconvolve
+
+
+#constants:
+c=3e8
+
+#Signal Characteristics
+depth = -random()*1000 
+impulse=[]
+with open('impulse.txt') as f:
+    impulse=f.readlines()
+impulse = [x.strip() for x in impulse]
+impulse = map(float,impulse)
+
+#Noise characteristics
+SNR = 5 #signal to noise ratio
+noise_mean=max(impulse)/SNR
+print(noise_mean)
+noise = np.random.normal(noise_mean, 1, len(impulse))
+#print(noise)
+
+print(len(impulse))
+print(len(noise))
+signal=[0]*124
+#Add Noise to Signal- but leave 4 0s at beginning and end
+for x in range(15, len(impulse)-15):
+    signal[x] = impulse[x]+noise[x]
+
+
+#plt.plot(signal)
+#plt.show()
+
+#Antenna Characteristics
+a1_height = 1
+a1_dist = 1000
+a2_height = 2
+a2_dist = 1000
+
+h_eff=[]
+with open('h_eff.txt')as f:
+    h_eff=f.readlines()
+h_eff = [x.strip() for x in h_eff]
+print(h_eff)
+h_eff = map(float,h_eff)
+
+
+#Calculate time for signal to reach antennas
+path1=math.sqrt(a1_dist**2+(a1_height-depth)**2)
+path2=math.sqrt(a2_dist**2+(a2_height-depth)**2)
+
+time1=path1/c
+time2=path2/c
+
+angle1=(a1_height-depth)/a1_dist
+angle2=(a2_height-depth)/a2_dist
+
+#Convolute effective height and signal to get antenna response
+#scipy.signal.fftconvolve will do it faster?
+signal = np.array(signal)
+h_eff = np.array(h_eff)
+print(signal)
+ant_response = fftconvolve(signal,h_eff,mode='full')
+#plt.plot(ant_response)
+#plt.show()
+
+#Plotting
+plt.figure(1)
+plt.subplot(311)
+plt.plot(signal)
+
+plt.subplot(312)
+plt.plot(h_eff)
+
+plt.subplot(313)
+plt.plot(ant_response)
+
+plt.savefig('noise.jpg')
+
+#Up next: Power sum the signal seen by both antennas
+power=[0]*len(ant_response)
+p_sum=0
+for i in range(0, len(ant_response)-1):
+    power[i]=ant_response[i]*ant_response[i]
+    p_sum=p_sum+power[i]
+
+print(p_sum)
+
+#Run 1000 sample waves and see what power looks like
+#Run 1000 noise-only responses and see what power looks like
+#Talk to Cosmin about details after this
+
+
+#Determine if the signal passes threshold
+
+#Things to add:
+# * attenuation
+# * refraction
+
+
+
